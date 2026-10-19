@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Admin Portal | OREOS DELICACIES</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rose: {
+              50: '#FFF5F7',
+              100: '#FEE7ED',
+              200: '#FCD2DD',
+              300: '#FAACC1',
+              400: '#F4729B',
+              500: '#E03166',
+              600: '#D81B60',
+              700: '#C2185B',
+              800: '#9C1448',
+              900: '#700B32',
+            }
+          },
+          fontFamily: {
+            heading: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Supabase CDN (Optional Cloud Sync) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#F8F9FA] text-[#1F2937] font-sans min-h-screen antialiased">
+
+  <!-- ========================================================================= -->
+  <!-- LOGIN SECTION (PROTECTED AUTHENTICATION GATE)                             -->
+  <!-- ========================================================================= -->
+  <div id="login-section" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#FFF5F7] via-rose-50/40 to-white">
+    <div class="max-w-md w-full bg-white rounded-3xl p-8 border border-rose-100 shadow-2xl relative">
+      
+      <!-- Logo & Heading -->
+      <div class="text-center mb-8">
+        <img src="assets/logo.png" alt="OREOS DELICACIES Logo" class="h-16 w-16 rounded-full object-cover mx-auto mb-3 shadow-md ring-2 ring-rose-200">
+        <h2 class="font-heading text-2xl font-bold text-gray-900">Owner &amp; Staff Portal</h2>
+        <p class="text-xs text-gray-500 mt-1">Sign in to manage your menu, prices, orders, and delivery fees.</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label for="login-email" class="block text-xs font-bold text-gray-700 mb-1.5">Admin Email Address</label>
+          <div class="relative">
+            <input 
+              type="email" 
+              id="login-email" 
+              required 
+              value="admin@oreosdelicacies.com" 
+              class="w-full bg-rose-50/40 border border-rose-200 rounded-2xl py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#E03166]"
+            >
+            <i data-lucide="mail" class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          </div>
+        </div>
+
+        <div>
+          <label for="login-password" class="block text-xs font-bold text-gray-700 mb-1.5">Admin Password</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="login-password" 
+              required 
+              value="OreosAdmin2025!" 
+              class="w-full bg-rose-50/40 border border-rose-200 rounded-2xl py-3 pl-10 pr-4 text-xs sm:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#E03166]"
+            >
+            <i data-lucide="lock" class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <span class="text-gray-400">Owner Access Only</span>
+          <button type="button" id="forgot-password-btn" class="font-bold text-rose-600 hover:underline">
+            Forgot Password?
+          </button>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-bold text-sm shadow-rose hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-2"
+        >
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Secure Sign In</span>
+        </button>
+      </form>
+
+      <!-- Back to site link -->
+      <div class="mt-6 text-center border-t border-rose-100 pt-4">
+        <a href="index.html" class="text-xs font-semibold text-gray-500 hover:text-rose-600 flex items-center justify-center gap-1">
+          <span>← Back to Public Website</span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN ADMIN APPLICATION (VISIBLE AFTER LOGIN)                              -->
+  <!-- ========================================================================= -->
+  <div id="admin-app" class="hidden min-h-screen flex flex-col">
+    
+    <!-- Top Admin Header -->
+    <header class="bg-white border-b border-rose-100 sticky top-0 z-40 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
+        
+        <div class="flex items-center gap-3">
+          <a href="index.html" target="_blank" title="Preview Live Site" class="flex items-center gap-2.5">
+            <img src="assets/logo.png" alt="OREOS DELICACIES" class="h-10 w-10 rounded-full object-cover ring-2 ring-rose-200">
+            <span class="font-heading font-black text-base text-gray-900 tracking-wider">OREOS <span class="text-[#E03166] font-normal">DELICACIES</span></span>
+          </a>
+          <span class="hidden sm:inline px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+            Admin Portal
+          </span>
+        </div>
+
+        <!-- Right: Live Site Link & User Session -->
+        <div class="flex items-center gap-3">
+          <a 
+            href="index.html" 
+            target="_blank" 
+            class="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold transition-colors flex items-center gap-1.5"
+          >
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">View Live Website</span>
+          </a>
+
+          <div class="flex items-center gap-2 pl-2 border-l border-rose-100">
+            <span id="admin-user-display" class="hidden md:inline text-xs font-bold text-gray-700">Admin</span>
+            <button 
+              id="logout-btn" 
+              class="p-2 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="Logout"
+            >
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs (Mobile-Friendly Horizontal Scroll) -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex items-center gap-2 overflow-x-auto py-2 scrollbar-none text-xs font-bold">
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap bg-[#E03166] text-white shadow" data-tab="dashboard">
+            📊 Dashboard
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="menu">
+            🍰 Delicacies &amp; Menu
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="categories">
+            🏷️ Categories
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="delivery">
+            🛵 Delivery Fees
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="orders">
+            📦 Orders &amp; Enquiries
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="gallery">
+            📸 Gallery
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="reviews">
+            ⭐ Reviews
+          </button>
+          <button class="admin-nav-btn px-4 py-2 rounded-xl transition-all whitespace-nowrap text-gray-700 hover:bg-rose-50" data-tab="settings">
+            ⚙️ Site Settings
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+      
+      <!-- ===================================================================== -->
+      <!-- PANE 1: DASHBOARD                                                     -->
+      <!-- ===================================================================== -->
+      <div id="pane-dashboard" class="admin-tab-pane space-y-8">
+        
+        <!-- Welcome Banner -->
+        <div class="bg-gradient-to-r from-rose-600 via-rose-700 to-rose-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs uppercase font-bold tracking-wider text-rose-200 block mb-1">Oreos Delicacies Command Center</span>
+            <h2 class="font-heading text-2xl sm:text-3xl font-bold">Hello, Oreofe Abisola! 👋</h2>
+            <p class="text-xs sm:text-sm text-rose-100 mt-1">Here is a quick overview of your bakery store, active orders, and delicacies.</p>
+          </div>
+          <div class="bg-white/20 backdrop-blur-md px-4 py-2.5 rounded-2xl text-xs font-semibold">
+            <span class="block text-rose-100 text-[10px] uppercase font-bold">Nigeria Time (WAT)</span>
+            <span id="dashboard-time-badge" class="font-bold text-white">Open Now (8AM - 8PM)</span>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <span class="text-[11px] font-bold text-gray-400 block uppercase">Total Delicacies</span>
+            <span id="stat-total-items" class="font-heading text-3xl font-bold text-gray-900 block mt-1">0</span>
+            <span class="text-[10px] text-gray-500">Across all categories</span>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <span class="text-[11px] font-bold text-gray-400 block uppercase">Sold Out Today</span>
+            <span id="stat-sold-out" class="font-heading text-3xl font-bold text-rose-600 block mt-1">0</span>
+            <span class="text-[10px] text-gray-500">Marked unavailable</span>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <span class="text-[11px] font-bold text-gray-400 block uppercase">Pending Orders</span>
+            <span id="stat-pending-orders" class="font-heading text-3xl font-bold text-amber-600 block mt-1">0</span>
+            <span class="text-[10px] text-gray-500">Awaiting dispatch</span>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <span class="text-[11px] font-bold text-gray-400 block uppercase">Event Enquiries</span>
+            <span id="stat-pending-enquiries" class="font-heading text-3xl font-bold text-blue-600 block mt-1">0</span>
+            <span class="text-[10px] text-gray-500">Custom cake bookings</span>
+          </div>
+
+          <div class="col-span-2 sm:col-span-1 bg-white p-5 rounded-3xl border border-rose-100 shadow-sm">
+            <span class="text-[11px] font-bold text-gray-400 block uppercase">Confirmed Revenue</span>
+            <span id="stat-total-revenue" class="font-heading text-2xl sm:text-3xl font-bold text-emerald-600 block mt-1">₦0</span>
+            <span class="text-[10px] text-gray-500">Confirmed &amp; Delivered</span>
+          </div>
+        </div>
+
+        <!-- Recent WhatsApp Orders Feed -->
+        <div class="bg-white rounded-3xl border border-rose-100 p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-heading text-lg font-bold text-gray-900">Recent Customer Orders</h3>
+            <button class="text-xs font-bold text-rose-600 hover:underline admin-nav-btn" data-tab="orders">
+              View All Orders →
+            </button>
+          </div>
+          <div id="dashboard-recent-orders" class="space-y-3">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 2: MENU MANAGER                                                  -->
+      <!-- ===================================================================== -->
+      <div id="pane-menu" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-gray-900">Menu &amp; Delicacies Manager</h2>
+            <p class="text-xs text-gray-500">Add, edit, change prices, reorder, or mark items as sold out.</p>
+          </div>
+          <button 
+            id="add-new-item-btn" 
+            class="px-5 py-3 rounded-2xl bg-[#E03166] hover:bg-[#C2185B] text-white font-bold text-xs sm:text-sm shadow-rose transition-smooth flex items-center justify-center gap-2"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add New Delicacy</span>
+          </button>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2 relative">
+            <input 
+              type="text" 
+              id="admin-menu-search" 
+              placeholder="Search items by name or description..." 
+              class="w-full bg-white border border-rose-200 rounded-2xl py-2.5 pl-10 pr-4 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            >
+            <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          </div>
+          <div>
+            <select 
+              id="admin-menu-cat-filter" 
+              class="w-full bg-white border border-rose-200 rounded-2xl px-3 py-2.5 text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
+            >
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Items List Container -->
+        <div id="admin-menu-list" class="space-y-3">
+          <!-- Populated by js/admin.js -->
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 3: CATEGORY MANAGER                                              -->
+      <!-- ===================================================================== -->
+      <div id="pane-categories" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-gray-900">Category Manager</h2>
+            <p class="text-xs text-gray-500">Create, rename, or remove menu categories.</p>
+          </div>
+          <button 
+            id="add-category-btn" 
+            class="px-5 py-2.5 rounded-2xl bg-[#E03166] text-white font-bold text-xs shadow transition-smooth flex items-center gap-2"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Category</span>
+          </button>
+        </div>
+
+        <div id="admin-categories-list" class="space-y-3">
+          <!-- Populated by js/admin.js -->
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 4: DELIVERY FEES MANAGER                                         -->
+      <!-- ===================================================================== -->
+      <div id="pane-delivery" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-gray-900">Delivery Areas &amp; Fees Manager</h2>
+            <p class="text-xs text-gray-500">Edit delivery charges for FUNAAB, Isolu, and Abeokuta neighborhoods.</p>
+          </div>
+          <button 
+            id="add-delivery-area-btn" 
+            class="px-5 py-2.5 rounded-2xl bg-[#E03166] text-white font-bold text-xs shadow transition-smooth flex items-center gap-2"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Delivery Area</span>
+          </button>
+        </div>
+
+        <div id="admin-delivery-list" class="space-y-3">
+          <!-- Populated by js/admin.js -->
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 5: ORDERS & ENQUIRIES                                            -->
+      <!-- ===================================================================== -->
+      <div id="pane-orders" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-gray-900">Orders &amp; Event Enquiries</h2>
+            <p class="text-xs text-gray-500">Track orders received from WhatsApp and manage booking statuses.</p>
+          </div>
+
+          <!-- Type Switcher & Filter -->
+          <div class="flex items-center gap-2">
+            <div class="bg-white p-1 rounded-2xl border border-rose-200 flex items-center text-xs font-bold">
+              <button class="orders-subtab active px-3 py-1.5 rounded-xl bg-[#E03166] text-white" data-type="orders">
+                Orders
+              </button>
+              <button class="orders-subtab px-3 py-1.5 rounded-xl text-gray-600 hover:text-gray-900" data-type="enquiries">
+                Custom Enquiries
+              </button>
+            </div>
+
+            <select id="admin-orders-filter" class="bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800">
+              <option value="all">All Statuses</option>
+              <option value="pending">⏳ Pending</option>
+              <option value="confirmed">👍 Confirmed / Booked</option>
+              <option value="delivered">✅ Delivered / Closed</option>
+              <option value="cancelled">❌ Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="admin-orders-list" class="space-y-4">
+          <!-- Populated by js/admin.js -->
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 6: GALLERY MANAGER                                               -->
+      <!-- ===================================================================== -->
+      <div id="pane-gallery" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-gray-900">Gallery Manager</h2>
+            <p class="text-xs text-gray-500">Manage showcase photos on the public website.</p>
+          </div>
+          <button 
+            id="add-gallery-photo-btn" 
+            class="px-5 py-2.5 rounded-2xl bg-[#E03166] text-white font-bold text-xs shadow flex items-center gap-2"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Photo</span>
+          </button>
+        </div>
+
+        <div id="admin-gallery-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <!-- Populated by js/admin.js -->
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 7: REVIEWS MANAGER                                               -->
+      <!-- ===================================================================== -->
+      <div id="pane-reviews" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-gray-900">Testimonials &amp; Reviews</h2>
+            <p class="text-xs text-gray-500">Manage customer ratings and reviews shown on the homepage.</p>
+          </div>
+          <button 
+            id="add-review-btn" 
+            class="px-5 py-2.5 rounded-2xl bg-[#E03166] text-white font-bold text-xs shadow flex items-center gap-2"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Review</span>
+          </button>
+        </div>
+
+        <div id="admin-reviews-list" class="space-y-3">
+          <!-- Populated by js/admin.js -->
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PANE 8: SITE SETTINGS & SUPABASE CLOUD SYNC                           -->
+      <!-- ===================================================================== -->
+      <div id="pane-settings" class="admin-tab-pane hidden space-y-6">
+        
+        <div>
+          <h2 class="font-heading text-2xl font-bold text-gray-900">Site Settings &amp; Configuration</h2>
+          <p class="text-xs text-gray-500">Edit business contacts, opening hours, story text, and cloud sync settings.</p>
+        </div>
+
+        <form id="settings-form" class="space-y-6 bg-white p-6 sm:p-8 rounded-3xl border border-rose-100 shadow-sm">
+          
+          <!-- General Business Info -->
+          <div>
+            <h3 class="font-heading text-base font-bold text-gray-900 mb-3 border-b border-rose-100 pb-2">Business &amp; Brand Details</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label for="setting-business-name" class="block text-xs font-bold text-gray-700 mb-1">Business Name</label>
+                <input type="text" id="setting-business-name" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+              <div>
+                <label for="setting-tagline" class="block text-xs font-bold text-gray-700 mb-1">Tagline</label>
+                <input type="text" id="setting-tagline" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+              <div>
+                <label for="setting-owner-name" class="block text-xs font-bold text-gray-700 mb-1">Owner Name</label>
+                <input type="text" id="setting-owner-name" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Channels -->
+          <div>
+            <h3 class="font-heading text-base font-bold text-gray-900 mb-3 border-b border-rose-100 pb-2">Contact &amp; Social Links</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label for="setting-phone" class="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
+                <input type="text" id="setting-phone" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+              <div>
+                <label for="setting-whatsapp" class="block text-xs font-bold text-gray-700 mb-1">WhatsApp Number</label>
+                <input type="text" id="setting-whatsapp" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+              <div>
+                <label for="setting-tiktok" class="block text-xs font-bold text-gray-700 mb-1">TikTok Handle</label>
+                <input type="text" id="setting-tiktok" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+            </div>
+            <div class="mt-4">
+              <label for="setting-address" class="block text-xs font-bold text-gray-700 mb-1">Store Address</label>
+              <input type="text" id="setting-address" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+            </div>
+          </div>
+
+          <!-- Opening Hours -->
+          <div>
+            <h3 class="font-heading text-base font-bold text-gray-900 mb-3 border-b border-rose-100 pb-2">Opening Hours (Africa/Lagos)</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="setting-hours-weekday" class="block text-xs font-bold text-gray-700 mb-1">Monday – Saturday Hours</label>
+                <input type="text" id="setting-hours-weekday" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+              <div>
+                <label for="setting-hours-sunday" class="block text-xs font-bold text-gray-700 mb-1">Sunday Hours</label>
+                <input type="text" id="setting-hours-sunday" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800">
+              </div>
+            </div>
+          </div>
+
+          <!-- Story Text -->
+          <div>
+            <label for="setting-about-text" class="block text-xs font-bold text-gray-700 mb-1">About Us Story (Oreofe Abisola)</label>
+            <textarea id="setting-about-text" rows="4" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl p-3 text-xs text-gray-800 leading-relaxed"></textarea>
+          </div>
+
+          <!-- Supabase Cloud Credentials -->
+          <div class="bg-rose-50/50 p-5 rounded-2xl border border-rose-100">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-bold text-xs text-gray-900 flex items-center gap-1.5">
+                <span>⚡ Supabase Database Sync</span>
+              </h4>
+              <button type="button" id="test-supabase-btn" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px]">
+                Test Connection
+              </button>
+            </div>
+            <p class="text-[11px] text-gray-500 mb-3">
+              Optional: Connect your cloud Supabase database. If empty, the website runs in Local Storage mode automatically.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="setting-supabase-url" class="block text-[11px] font-bold text-gray-600 mb-1">Supabase Project URL</label>
+                <input type="text" id="setting-supabase-url" placeholder="https://your-project.supabase.co" class="w-full bg-white border border-rose-200 rounded-xl px-3 py-1.5 text-xs text-gray-800">
+              </div>
+              <div>
+                <label for="setting-supabase-key" class="block text-[11px] font-bold text-gray-600 mb-1">Supabase Anon Key</label>
+                <input type="password" id="setting-supabase-key" placeholder="eyJhbGciOi..." class="w-full bg-white border border-rose-200 rounded-xl px-3 py-1.5 text-xs text-gray-800">
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-rose-100">
+            <button 
+              type="submit" 
+              class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-[#E03166] hover:bg-[#C2185B] text-white font-bold text-xs sm:text-sm shadow-rose transition-smooth"
+            >
+              Save Site Settings
+            </button>
+
+            <!-- Backup & Reset Actions -->
+            <div class="flex items-center gap-2">
+              <button type="button" id="export-data-btn" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold">
+                📥 Export JSON Backup
+              </button>
+              <button type="button" id="reset-defaults-btn" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">
+                🔄 Restore Defaults
+              </button>
+            </div>
+          </div>
+
+        </form>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- ITEM EDIT / ADD MODAL                                                     -->
+  <!-- ========================================================================= -->
+  <div id="item-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="max-w-2xl w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-rose-100 my-8 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-rose-100 pb-4 mb-5">
+        <h3 id="item-modal-title" class="font-heading text-xl font-bold text-gray-900">Add New Delicacy</h3>
+        <button id="close-item-modal-btn" class="text-gray-400 hover:text-gray-700 p-1.5 rounded-xl hover:bg-rose-50" aria-label="Close modal">
+          ✕
+        </button>
+      </div>
+
+      <form id="item-form" class="space-y-4">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="item-name" class="block text-xs font-bold text-gray-700 mb-1">Delicacy Name *</label>
+            <input type="text" id="item-name" required placeholder="e.g. Oreofe's Signature Eggroll" class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500">
+          </div>
+          <div>
+            <label for="item-category" class="block text-xs font-bold text-gray-700 mb-1">Category *</label>
+            <select id="item-category" required class="w-full bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="item-description" class="block text-xs font-bold text-gray-700 mb-1">Description</label>
+          <textarea id="item-description" rows="2" placeholder="Appetizing details about ingredients, texture, flavors..." class="w-full bg-rose-50/40 border border-rose-200 rounded-xl p-2.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+        </div>
+
+        <!-- Image Selector: File Upload OR URL -->
+        <div class="bg-rose-50/50 p-4 rounded-2xl border border-rose-100 space-y-3">
+          <label class="block text-xs font-bold text-gray-800">Delicacy Photo</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+            <div>
+              <span class="text-[11px] text-gray-500 block mb-1">Option A: Upload Photo from Phone/Computer</span>
+              <input type="file" id="item-image-file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200">
+            </div>
+            <div>
+              <span class="text-[11px] text-gray-500 block mb-1">Option B: Or Enter Image URL</span>
+              <input type="url" id="item-image-url" placeholder="https://..." class="w-full bg-white border border-rose-200 rounded-xl px-3 py-1.5 text-xs text-gray-800">
+            </div>
+          </div>
+          <img id="item-image-preview" src="" alt="Preview" class="hidden h-24 w-24 object-cover rounded-xl border border-rose-200 mt-2">
+        </div>
+
+        <!-- Size / Variant Prices Builder -->
+        <div class="border border-rose-200 rounded-2xl p-4 bg-white space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-xs text-gray-900">Sizes, Packs &amp; Prices (₦)</h4>
+              <p class="text-[11px] text-gray-500">Every item supports multiple sizes with separate prices (e.g. 6", 8", 10" or Small/Medium jar).</p>
+            </div>
+            <button type="button" id="add-variant-row-btn" class="px-3 py-1.5 rounded-xl bg-rose-100 text-rose-700 hover:bg-rose-200 text-xs font-bold">
+              + Add Size Option
+            </button>
+          </div>
+
+          <div id="variant-rows-container" class="space-y-2">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Badges & Availability Toggles -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <label class="flex items-center gap-2 p-3 bg-rose-50/50 rounded-xl border border-rose-100 cursor-pointer">
+            <input type="checkbox" id="item-is-signature" class="rounded text-[#E03166] focus:ring-rose-500">
+            <span class="text-xs font-bold text-gray-800">⭐ Signature Item</span>
+          </label>
+
+          <label class="flex items-center gap-2 p-3 bg-rose-50/50 rounded-xl border border-rose-100 cursor-pointer">
+            <input type="checkbox" id="item-is-featured" class="rounded text-[#E03166] focus:ring-rose-500">
+            <span class="text-xs font-bold text-gray-800">🔥 Popular Item</span>
+          </label>
+
+          <label class="flex items-center gap-2 p-3 bg-rose-50/50 rounded-xl border border-rose-100 cursor-pointer">
+            <input type="checkbox" id="item-is-sold-out" class="rounded text-rose-600 focus:ring-rose-500">
+            <span class="text-xs font-bold text-rose-600">🚫 Sold Out Today</span>
+          </label>
+        </div>
+
+        <!-- Submit & Cancel -->
+        <div class="pt-4 border-t border-rose-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="document.getElementById('item-modal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold text-xs hover:bg-gray-200">
+            Cancel
+          </button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-[#E03166] hover:bg-[#C2185B] text-white font-bold text-xs shadow transition-smooth">
+            Save Delicacy
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Admin Toast Container -->
+  <div id="admin-toast-container"></div>
+
+  <!-- Admin Portal Script -->
+  <script type="module" src="js/admin.js"></script>
+
+</body>
+</html>

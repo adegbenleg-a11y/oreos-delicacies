@@ -1,0 +1,15 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+
+# Local environment & secrets
+.env
+.env.local
+*.log
+
+# IDE files
+.vscode/
+.idea/

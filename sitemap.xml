@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>http://localhost:8088/index.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/logo.png</image:loc>
+      <image:title>OREOS DELICACIES Official Logo</image:title>
+      <image:caption>Exceptional Cake and Pastries in Abeokuta by Oreofe Abisola</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/oreofe-abisola.jpg</image:loc>
+      <image:title>Oreofe Abisola - Head Pastry Chef &amp; Founder</image:title>
+      <image:caption>Oreofe Abisola with her two-tiered celebration cake at OREOS DELICACIES Abeokuta</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-eggroll-700.jpg</image:loc>
+      <image:title>Oreofe's Famous Signature Eggroll (₦700)</image:title>
+      <image:caption>Golden, crispy pastry dough with seasoned hard-boiled egg center in Abeokuta</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-bento-2layer-18k.jpg</image:loc>
+      <image:title>Size 5 Bento Two Layer Luxury Birthday Cake (₦18,000)</image:title>
+      <image:caption>Black ribbon bows and gold pearl birthday cake at Oreos Delicacies Abeokuta</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-treat-box-14k.jpg</image:loc>
+      <image:title>Deluxe Treat Box with Wine and Bento Cake (₦14,000)</image:title>
+      <image:caption>Veleta wine and birthday bento box surprise in Abeokuta</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-snacks-box-25k.jpg</image:loc>
+      <image:title>Celebration Small Chops and Pastry Mega Box (₦25,000)</image:title>
+      <image:caption>Assorted meat pies, buns, puff-puff, spring rolls, and chicken in FUNAAB</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-meat-pie-filling-1200.jpg</image:loc>
+      <image:title>Golden Minced Beef Meat Pie (₦1,200)</image:title>
+      <image:caption>Flaky pastry filled with seasoned minced beef, carrots, and potatoes in Abeokuta</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-milky-donut-3500.jpg</image:loc>
+      <image:title>Creamy Milky Stuffed Donuts (₦3,500)</image:title>
+      <image:caption>Ultra-soft donuts filled with sweet milk cream and dusted with milk snow</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>http://localhost:8088/assets/images/real-fruit-parfait-4k.jpg</image:loc>
+      <image:title>Fresh Greek Fruit Parfait (₦4,000)</image:title>
+      <image:caption>Chilled Greek yoghurt, strawberries, kiwi, and roasted granola cup in FUNAAB</image:caption>
+    </image:image>
+  </url>
+</urlset>
