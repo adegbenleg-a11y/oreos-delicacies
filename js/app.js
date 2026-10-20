@@ -61,11 +61,49 @@ const elements = {
 let currentCategory = 'all';
 let currentSearch = '';
 let currentGalleryIndex = 0;
+let catalogViewMode = 'grid'; // 'grid' | 'list'
+let expandedCategoryIds = new Set();
+let hasInitializedAccordions = false;
+
+// Category Visual Metadata (Icon, Subtitle description, Short display name)
+const CATEGORY_META = {
+  'cat-eggrolls-snacks': {
+    emoji: '🥐',
+    subtitle: "Abeokuta's famous signature eggrolls, savory meat pies & crispy rolls",
+    shortName: 'Eggrolls & Snacks'
+  },
+  'cat-cakes': {
+    emoji: '🎂',
+    subtitle: 'Bespoke celebration tiered cakes, trendy bento boxes & money cakes',
+    shortName: 'Cakes'
+  },
+  'cat-surprise-boxes': {
+    emoji: '🎁',
+    subtitle: 'Curated celebration gift packages with snacks, wine & juice',
+    shortName: 'Surprise Boxes'
+  },
+  'cat-donuts-sweets': {
+    emoji: '🍩',
+    subtitle: 'Fluffy milky donuts, rich fudgy brownies & decorated cupcakes',
+    shortName: 'Donuts & Sweets'
+  },
+  'cat-parfaits': {
+    emoji: '🍨',
+    subtitle: 'Chilled Greek yogurt fruit parfaits layered with fresh toppings',
+    shortName: 'Parfaits'
+  },
+  'cat-jars-crunchies': {
+    emoji: '🥜',
+    subtitle: 'Crunchy bite-sized Nigerian chinchin, roasted peanuts & plantain chips',
+    shortName: 'Jars & Crunchies'
+  }
+};
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
   initLiveHours();
   initNavbar();
+  initCatalogControls();
   renderCategories();
   renderMenu();
   renderDeliveryAreas();
@@ -247,178 +285,383 @@ function initNavbar() {
 }
 
 /**
- * Render Category Filter Buttons
+ * Render Horizontal Scrollable Category Jump Chips
  */
 function renderCategories() {
-  if (!elements.categoryPills) return;
+  const categoryPillsEl = document.getElementById('category-pills');
+  if (!categoryPillsEl) return;
   const categories = store.getCategories();
   const allItems = store.getMenuItems('all');
 
   let html = `
     <button 
-      class="category-btn px-5 py-2.5 rounded-full text-sm font-semibold transition-smooth ${currentCategory === 'all' ? 'bg-[#E03166] text-white shadow-md' : 'bg-white text-gray-700 hover:bg-rose-50 border border-gray-200'}"
+      type="button"
+      class="category-pill-btn px-4 py-2 rounded-full text-xs font-bold transition-all border ${currentCategory === 'all' ? 'is-active bg-[#E03166] text-white shadow-md border-[#E03166]' : 'bg-white text-gray-700 hover:bg-rose-50 border-rose-200'}"
       data-category="all"
+      role="tab"
+      aria-selected="${currentCategory === 'all'}"
     >
-      All Treats (${allItems.length})
+      <span>✨</span>
+      <span>All Delicacies (${allItems.length})</span>
     </button>
   `;
 
   categories.forEach(cat => {
     const count = allItems.filter(i => i.category_id === cat.id).length;
+    const meta = CATEGORY_META[cat.id] || { emoji: '🍰', shortName: cat.name };
     const isActive = currentCategory === cat.id;
+
     html += `
       <button 
-        class="category-btn px-5 py-2.5 rounded-full text-sm font-semibold transition-smooth ${isActive ? 'bg-[#E03166] text-white shadow-md' : 'bg-white text-gray-700 hover:bg-rose-50 border border-gray-200'}"
+        type="button"
+        class="category-pill-btn px-4 py-2 rounded-full text-xs font-bold transition-all border ${isActive ? 'is-active bg-[#E03166] text-white shadow-md border-[#E03166]' : 'bg-white text-gray-700 hover:bg-rose-50 border-rose-200'}"
         data-category="${cat.id}"
+        role="tab"
+        aria-selected="${isActive}"
       >
-        ${cat.name} (${count})
+        <span>${meta.emoji}</span>
+        <span>${meta.shortName} (${count})</span>
       </button>
     `;
   });
 
-  elements.categoryPills.innerHTML = html;
+  categoryPillsEl.innerHTML = html;
 
-  // Add click handlers
-  elements.categoryPills.querySelectorAll('.category-btn').forEach(btn => {
+  // Add click handlers for category jump / filter chips
+  categoryPillsEl.querySelectorAll('.category-pill-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentCategory = btn.dataset.category;
+      const catId = btn.dataset.category;
+      currentCategory = catId;
       renderCategories();
-      renderMenu();
+
+      if (catId === 'all') {
+        const cats = store.getCategories();
+        cats.forEach(c => expandedCategoryIds.add(c.id));
+        renderMenu();
+      } else {
+        expandedCategoryIds.add(catId);
+        renderMenu();
+        setTimeout(() => {
+          const targetAccordion = document.getElementById(`accordion-${catId}`);
+          if (targetAccordion) {
+            targetAccordion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            targetAccordion.classList.add('ring-2', 'ring-[#E03166]');
+            setTimeout(() => targetAccordion.classList.remove('ring-2', 'ring-[#E03166]'), 1500);
+          }
+        }, 80);
+      }
     });
   });
-
-  // Search input
-  if (elements.menuSearchInput) {
-    elements.menuSearchInput.addEventListener('input', (e) => {
-      currentSearch = e.target.value;
-      renderMenu();
-    });
-  }
 }
 
 /**
- * Render Menu Grid Cards
+ * Render Menu in Grouped Collapsible Category Accordions
  */
 function renderMenu() {
-  if (!elements.menuGrid) return;
-  const items = store.getMenuItems(currentCategory, currentSearch);
+  const container = document.getElementById('catalog-accordion-container');
+  const emptyState = document.getElementById('menu-empty-state');
+  const countHint = document.getElementById('catalog-active-count-hint');
+  if (!container) return;
 
-  if (items.length === 0) {
-    elements.menuGrid.innerHTML = '';
-    elements.menuEmptyState?.classList.remove('hidden');
+  const categories = store.getCategories();
+  const allItems = store.getMenuItems('all', currentSearch);
+
+  // Initial expand state: On mobile (<768px), expand first category; on desktop expand all
+  if (!hasInitializedAccordions && expandedCategoryIds.size === 0) {
+    hasInitializedAccordions = true;
+    if (window.innerWidth < 768) {
+      if (categories.length > 0) expandedCategoryIds.add(categories[0].id);
+    } else {
+      categories.forEach(c => expandedCategoryIds.add(c.id));
+    }
+  }
+
+  // If user searched, auto-expand categories with matching items
+  if (currentSearch && currentSearch.trim().length > 0) {
+    categories.forEach(cat => {
+      const matchCount = allItems.filter(i => i.category_id === cat.id).length;
+      if (matchCount > 0) expandedCategoryIds.add(cat.id);
+    });
+  }
+
+  // If 0 total items across all categories
+  if (allItems.length === 0) {
+    container.innerHTML = '';
+    emptyState?.classList.remove('hidden');
+    if (countHint) countHint.textContent = 'No delicacies found';
     return;
   }
 
-  elements.menuEmptyState?.classList.add('hidden');
+  emptyState?.classList.add('hidden');
+  if (countHint) {
+    countHint.textContent = `Showing ${allItems.length} delicacies across ${categories.length} categories`;
+  }
 
-  let cardsHtml = '';
+  let accordionsHtml = '';
 
-  items.forEach(item => {
-    const defaultVariant = item.variants && item.variants.length > 0 ? item.variants[0] : { name: 'Standard', price: 0 };
-    const priceDisplay = defaultVariant.price > 0 ? store.formatNaira(defaultVariant.price) : 'Contact for price';
-
-    // Variant Options dropdown if multiple variants
-    let variantsDropdownHtml = '';
-    if (item.variants && item.variants.length > 1) {
-      const options = item.variants.map((v, i) => 
-        `<option value="${v.name}" data-price="${v.price}">${v.name} - ${v.price > 0 ? store.formatNaira(v.price) : 'Contact'}</option>`
-      ).join('');
-
-      variantsDropdownHtml = `
-        <div class="mb-3">
-          <label class="block text-xs font-semibold text-gray-500 mb-1">Select Size / Option:</label>
-          <select class="variant-select w-full bg-rose-50/50 border border-rose-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#E03166]">
-            ${options}
-          </select>
-        </div>
-      `;
-    } else {
-      variantsDropdownHtml = `
-        <div class="mb-3 text-xs text-rose-600 font-semibold bg-rose-50 px-2.5 py-1.5 rounded-lg inline-block">
-          ${defaultVariant.name}
-        </div>
-      `;
+  categories.forEach(cat => {
+    // Filter items in this category
+    const catItems = allItems.filter(i => i.category_id === cat.id);
+    if (catItems.length === 0 && currentSearch.trim().length > 0) {
+      return; // Hide empty categories when searching
     }
 
-    cardsHtml += `
-      <div class="bg-white rounded-3xl overflow-hidden border border-rose-100/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group relative" data-item-id="${item.id}">
-        
-        <!-- Image Container -->
-        <div class="relative h-56 w-full overflow-hidden bg-rose-50">
-          <img 
-            src="${item.image || 'assets/images/hero-spread.jpg'}" 
-            alt="${item.name}" 
-            loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onerror="this.src='https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=700&q=80'"
-          />
-          
-          <!-- Badges -->
-          <div class="absolute top-3 left-3 flex flex-col gap-1.5">
-            ${item.is_signature ? `<span class="px-3 py-1 rounded-full text-xs font-bold bg-[#E03166] text-white shadow-md flex items-center gap-1">⭐ Signature</span>` : ''}
-            ${item.is_featured && !item.is_signature ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white shadow-sm">Popular</span>` : ''}
-          </div>
+    const meta = CATEGORY_META[cat.id] || {
+      emoji: '🍰',
+      subtitle: 'Artisan bakes crafted with passion by Oreofe Abisola',
+      shortName: cat.name
+    };
 
-          ${item.is_sold_out ? `
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
-              <span class="px-4 py-1.5 bg-rose-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
-                Sold Out Today
-              </span>
+    // Calculate minimum price among items in this category
+    let minPrice = Infinity;
+    catItems.forEach(item => {
+      (item.variants || []).forEach(v => {
+        if (v.price && v.price > 0 && v.price < minPrice) minPrice = v.price;
+      });
+    });
+    const minPriceText = minPrice !== Infinity ? `From ${store.formatNaira(minPrice)}` : '';
+
+    const isExpanded = expandedCategoryIds.has(cat.id);
+    const isCollapsedClass = isExpanded ? '' : 'is-collapsed';
+
+    // Generate Cards for Grid View (2 columns on mobile, 3-4 on desktop)
+    let gridCardsHtml = '';
+    // Generate Cards for Compact List View
+    let listRowsHtml = '';
+
+    catItems.forEach(item => {
+      const defaultVariant = item.variants && item.variants.length > 0 ? item.variants[0] : { name: 'Standard', price: 0 };
+      const priceDisplay = defaultVariant.price > 0 ? store.formatNaira(defaultVariant.price) : 'Contact for price';
+
+      // Variants Selector for Grid & List
+      let gridVariantsHtml = '';
+      let listVariantsHtml = '';
+
+      if (item.variants && item.variants.length > 1) {
+        const options = item.variants.map((v) => 
+          `<option value="${v.name}" data-price="${v.price}">${v.name} - ${v.price > 0 ? store.formatNaira(v.price) : 'Contact'}</option>`
+        ).join('');
+
+        gridVariantsHtml = `
+          <div class="mt-2 mb-1">
+            <select class="variant-select w-full bg-rose-50/60 border border-rose-200/90 rounded-xl px-2 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#E03166]">
+              ${options}
+            </select>
+          </div>
+        `;
+
+        listVariantsHtml = `
+          <div class="mt-1">
+            <select class="variant-select w-full max-w-[200px] bg-rose-50/60 border border-rose-200/90 rounded-lg px-2 py-1 text-[11px] font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#E03166]">
+              ${options}
+            </select>
+          </div>
+        `;
+      } else {
+        gridVariantsHtml = `
+          <div class="mt-2 mb-1">
+            <span class="text-[10px] sm:text-xs text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded-md inline-block border border-rose-100">
+              ${defaultVariant.name}
+            </span>
+          </div>
+        `;
+        listVariantsHtml = `
+          <div class="mt-0.5">
+            <span class="text-[10px] sm:text-xs text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded-md inline-block border border-rose-100">
+              ${defaultVariant.name}
+            </span>
+          </div>
+        `;
+      }
+
+      // 1. Grid Card (Mobile 2-Column Responsive Card)
+      gridCardsHtml += `
+        <div class="catalog-item-card bg-white rounded-2xl sm:rounded-3xl border border-rose-100/90 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group" data-item-id="${item.id}">
+          <!-- Photo -->
+          <div class="relative w-full aspect-[4/3] sm:h-48 overflow-hidden bg-rose-50">
+            <img 
+              src="${item.image || 'assets/images/real-cake-size10.jpg'}" 
+              alt="${item.name}" 
+              loading="lazy"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              onerror="this.src='assets/images/real-cake-size10.jpg'"
+            />
+            <!-- Badges -->
+            <div class="absolute top-2 left-2 flex flex-col gap-1">
+              ${item.is_signature ? `<span class="px-2 py-0.5 rounded-full text-[9px] sm:text-xs font-bold bg-[#E03166] text-white shadow">⭐ Signature</span>` : ''}
+              ${item.is_featured && !item.is_signature ? `<span class="px-2 py-0.5 rounded-full text-[9px] sm:text-xs font-semibold bg-amber-500 text-white shadow-sm">Popular</span>` : ''}
             </div>
-          ` : ''}
-        </div>
-
-        <!-- Content -->
-        <div class="p-5 flex-1 flex flex-col justify-between">
-          <div>
-            <h3 class="font-heading text-lg font-bold text-gray-900 group-hover:text-[#E03166] transition-colors line-clamp-1 mb-1.5">
-              ${item.name}
-            </h3>
-            <p class="text-gray-500 text-xs leading-relaxed line-clamp-2 mb-3">
-              ${item.description || 'Freshly made with premium ingredients by Oreofe Abisola.'}
-            </p>
-
-            ${variantsDropdownHtml}
+            ${item.is_sold_out ? `
+              <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                <span class="px-2.5 py-1 bg-rose-600 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full shadow">Sold Out</span>
+              </div>` : ''}
           </div>
 
-          <!-- Bottom Price & Action -->
-          <div class="pt-3 border-t border-rose-100 flex items-center justify-between gap-3">
+          <!-- Content -->
+          <div class="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
             <div>
-              <span class="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">Price</span>
-              <span class="item-price-display font-heading text-xl font-bold text-[#E03166]">
-                ${priceDisplay}
-              </span>
+              <h4 class="font-heading text-xs sm:text-base font-bold text-gray-900 group-hover:text-[#E03166] transition-colors line-clamp-2 leading-tight">
+                ${item.name}
+              </h4>
+              <p class="hidden sm:block text-gray-500 text-xs line-clamp-2 mt-1">
+                ${item.description || 'Freshly made with premium ingredients by Oreofe Abisola.'}
+              </p>
+              ${gridVariantsHtml}
             </div>
 
+            <!-- Price & Button -->
+            <div class="pt-2 sm:pt-3 border-t border-rose-100 flex items-center justify-between gap-1.5 mt-2">
+              <div>
+                <span class="text-[9px] sm:text-[10px] uppercase font-semibold text-gray-400 block leading-tight">Price</span>
+                <span class="item-price-display font-heading text-xs sm:text-lg font-bold text-[#E03166] leading-none">
+                  ${priceDisplay}
+                </span>
+              </div>
+              <button 
+                type="button" 
+                class="add-to-cart-btn px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 ${item.is_sold_out ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#E03166] hover:bg-[#C2185B] text-white shadow active:scale-95'}"
+                ${item.is_sold_out ? 'disabled' : ''}
+                aria-label="Add ${item.name} to order"
+              >
+                <span>Add</span>
+                <span class="text-sm font-bold leading-none">+</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // 2. List Row (Compact Streamlined Row)
+      listRowsHtml += `
+        <div class="catalog-item-list-row bg-white rounded-2xl border border-rose-100/90 p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-3 sm:gap-4 group" data-item-id="${item.id}">
+          <div class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 bg-rose-50 border border-rose-100">
+            <img 
+              src="${item.image || 'assets/images/real-cake-size10.jpg'}" 
+              alt="${item.name}" 
+              loading="lazy"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              onerror="this.src='assets/images/real-cake-size10.jpg'"
+            />
+            ${item.is_signature ? `<span class="absolute top-1 left-1 px-1 bg-[#E03166] text-white text-[8px] font-bold rounded">⭐</span>` : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="font-heading text-xs sm:text-base font-bold text-gray-900 group-hover:text-[#E03166] transition-colors truncate">${item.name}</h4>
+              ${item.is_featured && !item.is_signature ? `<span class="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[9px] font-bold rounded">Popular</span>` : ''}
+            </div>
+            <p class="hidden sm:block text-gray-400 text-xs truncate mt-0.5">${item.description || ''}</p>
+            ${listVariantsHtml}
+          </div>
+          <div class="text-right flex-shrink-0 flex flex-col items-end gap-1.5">
+            <span class="item-price-display font-heading text-sm sm:text-base font-bold text-[#E03166]">${priceDisplay}</span>
             <button 
-              type="button"
-              class="add-to-cart-btn px-4 py-2.5 rounded-2xl font-semibold text-xs transition-smooth flex items-center gap-1.5 ${item.is_sold_out ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#E03166] hover:bg-[#C2185B] text-white shadow-sm hover:shadow-md active:scale-95'}"
+              type="button" 
+              class="add-to-cart-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${item.is_sold_out ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#E03166] hover:bg-[#C2185B] text-white shadow active:scale-95'} flex items-center gap-1"
               ${item.is_sold_out ? 'disabled' : ''}
+              aria-label="Add ${item.name} to order"
             >
-              <span>Add to Order</span>
+              <span>Add</span>
               <span>+</span>
             </button>
           </div>
-
         </div>
+      `;
+    });
 
+    accordionsHtml += `
+      <div 
+        id="accordion-${cat.id}" 
+        class="category-accordion-item ${isCollapsedClass}"
+        data-category-id="${cat.id}"
+      >
+        <!-- Accordion Header Button -->
+        <button 
+          type="button" 
+          class="category-accordion-header w-full flex items-center justify-between text-left focus:outline-none"
+          aria-expanded="${isExpanded}"
+          aria-controls="accordion-body-${cat.id}"
+        >
+          <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-100/80 text-[#E03166] flex items-center justify-center flex-shrink-0 shadow-sm text-lg sm:text-2xl border border-rose-200/50">
+              ${meta.emoji}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-heading text-sm sm:text-lg font-bold text-gray-900 truncate">
+                  ${cat.name}
+                </h3>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-rose-100 text-rose-700">
+                  ${catItems.length} items
+                </span>
+              </div>
+              <p class="text-[11px] sm:text-xs text-gray-500 font-medium truncate mt-0.5">
+                ${meta.subtitle}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            ${minPriceText ? `
+              <span class="text-[10px] sm:text-xs font-bold text-[#E03166] bg-rose-50 px-2.5 py-1 rounded-xl hidden xs:inline-block border border-rose-100">
+                ${minPriceText}
+              </span>
+            ` : ''}
+            <div class="accordion-chevron-box">
+              <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </div>
+          </div>
+        </button>
+
+        <!-- Accordion Body -->
+        <div id="accordion-body-${cat.id}" class="category-accordion-body">
+          <!-- Grid View Container (Default: 2-column mobile, 3-4 desktop) -->
+          <div class="catalog-grid-view grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            ${gridCardsHtml}
+          </div>
+
+          <!-- List View Container (Compact) -->
+          <div class="catalog-list-view flex flex-col gap-2 sm:gap-2.5">
+            ${listRowsHtml}
+          </div>
+        </div>
       </div>
     `;
   });
 
-  elements.menuGrid.innerHTML = cardsHtml;
+  container.innerHTML = accordionsHtml;
 
-  // Setup variant dropdown change handlers & Add-to-cart click handlers
-  elements.menuGrid.querySelectorAll('[data-item-id]').forEach(card => {
-    const itemId = card.dataset.itemId;
+  // Bind Accordion Header Toggles
+  container.querySelectorAll('.category-accordion-header').forEach(headerBtn => {
+    headerBtn.addEventListener('click', () => {
+      const parentItem = headerBtn.closest('.category-accordion-item');
+      const catId = parentItem.dataset.categoryId;
+      const isCurrentlyCollapsed = parentItem.classList.contains('is-collapsed');
+
+      if (isCurrentlyCollapsed) {
+        parentItem.classList.remove('is-collapsed');
+        headerBtn.setAttribute('aria-expanded', 'true');
+        expandedCategoryIds.add(catId);
+      } else {
+        parentItem.classList.add('is-collapsed');
+        headerBtn.setAttribute('aria-expanded', 'false');
+        expandedCategoryIds.delete(catId);
+      }
+
+      updateToggleAllBtnState();
+    });
+  });
+
+  // Bind Variant Selects & Add-to-Cart Buttons across all cards & rows
+  container.querySelectorAll('[data-item-id]').forEach(cardEl => {
+    const itemId = cardEl.dataset.itemId;
     const item = store.getMenuItemById(itemId);
     if (!item) return;
 
-    const variantSelect = card.querySelector('.variant-select');
-    const priceDisplay = card.querySelector('.item-price-display');
-    const addBtn = card.querySelector('.add-to-cart-btn');
+    const variantSelect = cardEl.querySelector('.variant-select');
+    const priceDisplay = cardEl.querySelector('.item-price-display');
+    const addBtn = cardEl.querySelector('.add-to-cart-btn');
 
-    if (variantSelect) {
+    if (variantSelect && priceDisplay) {
       variantSelect.addEventListener('change', () => {
         const selectedOption = variantSelect.selectedOptions[0];
         const price = parseFloat(selectedOption.dataset.price || '0');
@@ -435,12 +678,126 @@ function renderMenu() {
 
         cart.addItem(item, chosenVariantName, 1);
         showToast(`Added ${item.name} (${chosenVariantName}) to your order!`, 'cart');
-        openCartDrawer();
+        
+        // Update Mobile Floating Cart Bar with a reactive bounce animation
+        updateMobileCartBar(true);
       });
     }
   });
 
+  updateToggleAllBtnState();
+
   if (window.lucide) window.lucide.createIcons();
+}
+
+/**
+ * Synchronize Expand All / Collapse All Button State
+ */
+function updateToggleAllBtnState() {
+  const toggleBtn = document.getElementById('catalog-toggle-all-btn');
+  const toggleText = document.getElementById('catalog-toggle-all-text');
+  if (!toggleBtn || !toggleText) return;
+
+  const totalAccordions = document.querySelectorAll('.category-accordion-item').length;
+  const collapsedCount = document.querySelectorAll('.category-accordion-item.is-collapsed').length;
+
+  if (collapsedCount > 0) {
+    toggleBtn.dataset.state = 'collapsed';
+    toggleText.textContent = 'Expand All';
+  } else {
+    toggleBtn.dataset.state = 'expanded';
+    toggleText.textContent = 'Collapse All';
+  }
+}
+
+/**
+ * Initialize Interactive Catalog Toolbar Controls (Search, View Toggle, Expand All)
+ */
+function initCatalogControls() {
+  const searchInput = document.getElementById('menu-search-input');
+  const searchClear = document.getElementById('menu-search-clear');
+  const emptyResetBtn = document.getElementById('menu-empty-reset-btn');
+  const toggleAllBtn = document.getElementById('catalog-toggle-all-btn');
+  const viewGridBtn = document.getElementById('view-grid-btn');
+  const viewListBtn = document.getElementById('view-list-btn');
+  const container = document.getElementById('catalog-accordion-container');
+
+  // Search input
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentSearch = e.target.value;
+      if (searchClear) {
+        if (currentSearch.trim().length > 0) {
+          searchClear.classList.remove('hidden');
+        } else {
+          searchClear.classList.add('hidden');
+        }
+      }
+      renderMenu();
+    });
+  }
+
+  // Clear search
+  const clearSearch = () => {
+    if (searchInput) searchInput.value = '';
+    currentSearch = '';
+    searchClear?.classList.add('hidden');
+    renderMenu();
+  };
+
+  searchClear?.addEventListener('click', clearSearch);
+  emptyResetBtn?.addEventListener('click', clearSearch);
+
+  // Toggle All button
+  toggleAllBtn?.addEventListener('click', () => {
+    const categories = store.getCategories();
+    const currentState = toggleAllBtn.dataset.state;
+
+    if (currentState === 'expanded') {
+      // Collapse all
+      expandedCategoryIds.clear();
+      document.querySelectorAll('.category-accordion-item').forEach(item => {
+        item.classList.add('is-collapsed');
+        item.querySelector('.category-accordion-header')?.setAttribute('aria-expanded', 'false');
+      });
+    } else {
+      // Expand all
+      categories.forEach(c => expandedCategoryIds.add(c.id));
+      document.querySelectorAll('.category-accordion-item').forEach(item => {
+        item.classList.remove('is-collapsed');
+        item.querySelector('.category-accordion-header')?.setAttribute('aria-expanded', 'true');
+      });
+    }
+
+    updateToggleAllBtnState();
+  });
+
+  // View mode switcher: Grid vs List
+  const setViewMode = (mode) => {
+    catalogViewMode = mode;
+    if (container) {
+      if (mode === 'list') {
+        container.classList.add('mode-list');
+      } else {
+        container.classList.remove('mode-list');
+      }
+    }
+
+    if (mode === 'grid') {
+      viewGridBtn?.classList.add('bg-[#E03166]', 'text-white', 'shadow-sm');
+      viewGridBtn?.classList.remove('text-gray-600', 'hover:text-rose-600');
+      viewListBtn?.classList.remove('bg-[#E03166]', 'text-white', 'shadow-sm');
+      viewListBtn?.classList.add('text-gray-600', 'hover:text-rose-600');
+    } else {
+      viewListBtn?.classList.add('bg-[#E03166]', 'text-white', 'shadow-sm');
+      viewListBtn?.classList.remove('text-gray-600', 'hover:text-rose-600');
+      viewGridBtn?.classList.remove('bg-[#E03166]', 'text-white', 'shadow-sm');
+      viewGridBtn?.classList.add('text-gray-600', 'hover:text-rose-600');
+    }
+  };
+
+  viewGridBtn?.addEventListener('click', () => setViewMode('grid'));
+  viewListBtn?.addEventListener('click', () => setViewMode('list'));
 }
 
 /**
@@ -517,6 +874,10 @@ function initCart() {
     });
   }
 
+  // Mobile Floating Cart Bar click to open cart
+  const mobileCartBarBtn = document.getElementById('mobile-cart-bar-btn');
+  mobileCartBarBtn?.addEventListener('click', openCartDrawer);
+
   updateCartUI();
 }
 
@@ -587,6 +948,38 @@ function updateCartUI() {
     elements.cartDeliveryFee.textContent = isPickup ? 'FREE (Store Pickup)' : 'Calculated after order';
   }
   if (elements.cartTotal) elements.cartTotal.textContent = store.formatNaira(subtotal);
+
+  // Update floating mobile cart bar
+  updateMobileCartBar(false);
+}
+
+/**
+ * Update Floating Mobile Sticky Bottom Cart Bar
+ */
+function updateMobileCartBar(shouldBounce = false) {
+  const mobileBar = document.getElementById('mobile-cart-bar');
+  const countEl = document.getElementById('mobile-cart-bar-count');
+  const totalEl = document.getElementById('mobile-cart-bar-total');
+  if (!mobileBar) return;
+
+  const count = cart.getItemCount();
+  const subtotal = cart.getSubtotal();
+
+  if (count > 0) {
+    if (countEl) countEl.textContent = count;
+    if (totalEl) totalEl.textContent = store.formatNaira(subtotal);
+
+    mobileBar.classList.remove('translate-y-28', 'opacity-0', 'pointer-events-none');
+    document.body.classList.add('has-floating-cart');
+
+    if (shouldBounce) {
+      mobileBar.classList.add('scale-105');
+      setTimeout(() => mobileBar.classList.remove('scale-105'), 250);
+    }
+  } else {
+    mobileBar.classList.add('translate-y-28', 'opacity-0', 'pointer-events-none');
+    document.body.classList.remove('has-floating-cart');
+  }
 }
 
 function renderCartItemsList(items) {
