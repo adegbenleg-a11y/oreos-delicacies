@@ -2,54 +2,88 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>http://localhost:8088/index.html</loc>
-    <lastmod>2026-10-19</lastmod>
+    <loc>https://oreosdelicacies.com/</loc>
+    <lastmod>2026-10-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>http://localhost:8088/assets/logo.png</image:loc>
-      <image:title>OREOS DELICACIES Official Logo</image:title>
-      <image:caption>Exceptional Cake and Pastries in Abeokuta by Oreofe Abisola</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/logo.png</image:loc>
+      <image:title>OREOS DELICACIES Logo - Best Bakery in Abeokuta, FUNAAB &amp; Ogun State</image:title>
+      <image:caption>Artisan Bakery and Pastry Confectionery founded by Oreofe Abisola in Abeokuta</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/oreofe-abisola.jpg</image:loc>
-      <image:title>Oreofe Abisola - Head Pastry Chef &amp; Founder</image:title>
-      <image:caption>Oreofe Abisola with her two-tiered celebration cake at OREOS DELICACIES Abeokuta</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/oreofe-abisola.jpg</image:loc>
+      <image:title>Chef Oreofe Abisola - Head Pastry Chef &amp; Founder</image:title>
+      <image:caption>Oreofe Abisola with bespoke celebration cake at OREOS DELICACIES Isolu near FUNAAB Abeokuta</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-eggroll-700.jpg</image:loc>
-      <image:title>Oreofe's Famous Signature Eggroll (₦700)</image:title>
-      <image:caption>Golden, crispy pastry dough with seasoned hard-boiled egg center in Abeokuta</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-eggroll-700.jpg</image:loc>
+      <image:title>Oreofe's Famous Signature Eggroll FUNAAB (₦700)</image:title>
+      <image:caption>Abeokuta's famous golden crispy boiled-egg stuffed eggroll delivered to Camp and Isolu hostels</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-bento-2layer-18k.jpg</image:loc>
-      <image:title>Size 5 Bento Two Layer Luxury Birthday Cake (₦18,000)</image:title>
-      <image:caption>Black ribbon bows and gold pearl birthday cake at Oreos Delicacies Abeokuta</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-cake-size10.jpg</image:loc>
+      <image:title>Luxury Celebration Birthday Cake Size 10 Abeokuta (₦45,000)</image:title>
+      <image:caption>Bespoke tiered birthday cake handcrafted with gold and floral details in Ogun State</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-treat-box-14k.jpg</image:loc>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-bento-2layer-18k.jpg</image:loc>
+      <image:title>Trendy Two-Layer Bento Cake Abeokuta (₦18,000)</image:title>
+      <image:caption>Luxury ribbon bow bento cake for student birthdays and graduations in FUNAAB</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-meat-pie.jpg</image:loc>
+      <image:title>Classic Golden Meat Pie Abeokuta (₦1,200)</image:title>
+      <image:caption>Flaky shortcrust pastry packed with minced beef, carrots, and potatoes delivered in FUNAAB</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-treat-box-14k.jpg</image:loc>
       <image:title>Deluxe Treat Box with Wine and Bento Cake (₦14,000)</image:title>
-      <image:caption>Veleta wine and birthday bento box surprise in Abeokuta</image:caption>
+      <image:caption>Surprise birthday gift package with Veleta wine and bento cake in Abeokuta</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-snacks-box-25k.jpg</image:loc>
-      <image:title>Celebration Small Chops and Pastry Mega Box (₦25,000)</image:title>
-      <image:caption>Assorted meat pies, buns, puff-puff, spring rolls, and chicken in FUNAAB</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-donut-700.jpg</image:loc>
+      <image:title>Soft Milky Stuffed Donut Abeokuta (₦700)</image:title>
+      <image:caption>Fluffy golden donut rolled in milk sugar snow, baked fresh daily near FUNAAB</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-meat-pie-filling-1200.jpg</image:loc>
-      <image:title>Golden Minced Beef Meat Pie (₦1,200)</image:title>
-      <image:caption>Flaky pastry filled with seasoned minced beef, carrots, and potatoes in Abeokuta</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-fruit-parfait-4k.jpg</image:loc>
+      <image:title>Fresh Greek Yogurt Fruit Parfait (₦4,000)</image:title>
+      <image:caption>Chilled fruit parfait layered with Greek yogurt, strawberries, apples, and crunchy granola</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-milky-donut-3500.jpg</image:loc>
-      <image:title>Creamy Milky Stuffed Donuts (₦3,500)</image:title>
-      <image:caption>Ultra-soft donuts filled with sweet milk cream and dusted with milk snow</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-brownies-2500.jpg</image:loc>
+      <image:title>Rich Fudgy Chocolate Brownies Box (₦2,500)</image:title>
+      <image:caption>Decadent chocolate brownies baked with dark cocoa and chocolate chips in Abeokuta</image:caption>
     </image:image>
     <image:image>
-      <image:loc>http://localhost:8088/assets/images/real-fruit-parfait-4k.jpg</image:loc>
-      <image:title>Fresh Greek Fruit Parfait (₦4,000)</image:title>
-      <image:caption>Chilled Greek yoghurt, strawberries, kiwi, and roasted granola cup in FUNAAB</image:caption>
+      <image:loc>https://oreosdelicacies.com/assets/images/real-money-box-100k.jpg</image:loc>
+      <image:title>Luxury Money-Pulling Celebration Cake Abeokuta (₦100,000)</image:title>
+      <image:caption>High-end money box cake with naira cash pull-out mechanism for VIP birthdays</image:caption>
     </image:image>
+  </url>
+  <url>
+    <loc>https://oreosdelicacies.com/#featured</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://oreosdelicacies.com/#enquiry</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://oreosdelicacies.com/#about</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://oreosdelicacies.com/#contact</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

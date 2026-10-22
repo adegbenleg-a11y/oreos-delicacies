@@ -119,12 +119,11 @@ class CartManager {
 
   getDeliveryFee() {
     const area = this.getSelectedArea();
-    return area ? (area.fee || 0) : 0;
+    return area ? (Number(area.fee) || 0) : 0;
   }
 
   getTotal() {
-    // Delivery fee is confirmed after the order has been placed
-    return this.getSubtotal();
+    return this.getSubtotal() + this.getDeliveryFee();
   }
 
   /**
@@ -145,56 +144,61 @@ class CartManager {
 
     const settings = store.getSettings();
     const area = this.getSelectedArea();
+    const deliveryFee = this.getDeliveryFee();
     const subtotal = this.getSubtotal();
-    const total = subtotal;
+    const total = subtotal + deliveryFee;
+
+    // Snapshot of cart items for confirmation screen
+    const itemsSnapshot = this.cart.map(i => ({
+      name: i.name,
+      variant: i.variantName,
+      quantity: i.quantity,
+      price: i.unitPrice,
+      image: i.image
+    }));
 
     // 1. Save order to store (DB / LocalStorage)
     const newOrder = store.saveOrder({
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim(),
       delivery_area: area.name,
-      delivery_fee: 'Calculated after order',
-      items: this.cart.map(i => ({
-        name: i.name,
-        variant: i.variantName,
-        quantity: i.quantity,
-        price: i.unitPrice
-      })),
+      delivery_fee: deliveryFee === 0 ? 'FREE (Store Pickup)' : store.formatNaira(deliveryFee),
+      items: itemsSnapshot,
       subtotal: subtotal,
       total: total,
       notes: customerNotes.trim(),
       status: 'pending'
     });
 
-    // 2. Format WhatsApp Message
-    const orderItemsText = this.cart.map((item, idx) => {
-      const lineTotal = item.unitPrice * item.quantity;
-      return `${idx + 1}. *${item.name}*\n   ▫️ Size/Variant: ${item.variantName}\n   ▫️ Qty: ${item.quantity} × ${store.formatNaira(item.unitPrice)} = ${store.formatNaira(lineTotal)}`;
+    // 2. Format WhatsApp Message for Bulk Order
+    const orderItemsText = itemsSnapshot.map((item, idx) => {
+      const lineTotal = item.price * item.quantity;
+      return `${idx + 1}. *${item.name}*\n   ▫️ Size/Variant: ${item.variant}\n   ▫️ Qty: ${item.quantity} × ${store.formatNaira(item.price)} = ${store.formatNaira(lineTotal)}`;
     }).join('\n\n');
 
     const whatsappNumber = settings.whatsapp || '2347033396558';
 
     const message = 
-`🧁 *NEW ORDER: OREOS DELICACIES* 🧁
+`🧁 *BULK ORDER: OREOS DELICACIES* 🧁
 ----------------------------------------
 *Order ID:* #${newOrder.id}
 *Customer Name:* ${customerName.trim()}
 *Phone Number:* ${customerPhone.trim()}
 
-📍 *DELIVERY / PICKUP:*
-*Destination:* ${area.name}
-*Delivery Fee:* _Calculated & confirmed after order_
-${customerNotes.trim() ? `*Address / Special Notes:* ${customerNotes.trim()}\n` : ''}
+📍 *DELIVERY DETAILS:*
+*Destination Area:* ${area.name}
+*Delivery Fee:* ${deliveryFee === 0 ? 'FREE (Store Pickup)' : store.formatNaira(deliveryFee)}
+${customerNotes.trim() ? `*Delivery Address / Landmark Notes:* ${customerNotes.trim()}\n` : ''}
 ----------------------------------------
-🛍️ *ITEMS ORDERED:*
+🛍️ *ITEMS ORDERED IN BULK:*
 ${orderItemsText}
 ----------------------------------------
 💰 *PAYMENT SUMMARY:*
 *Treats Subtotal:* ${store.formatNaira(subtotal)}
-*Delivery Fee:* _To be confirmed upon order review_
-*TOTAL (Treats):* ${store.formatNaira(total)}
+*Delivery Fee:* ${deliveryFee === 0 ? 'FREE' : store.formatNaira(deliveryFee)}
+*GRAND TOTAL:* ${store.formatNaira(total)}
 ----------------------------------------
-✨ *Please confirm item availability, delivery fee, and payment account details. Thank you for choosing Oreos Delicacies!*`;
+✨ *Please confirm item availability and send payment account details. Thank you for choosing Oreos Delicacies!*`;
 
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
@@ -204,7 +208,15 @@ ${orderItemsText}
 
     return {
       order: newOrder,
-      whatsappUrl: whatsappUrl
+      whatsappUrl: whatsappUrl,
+      items: itemsSnapshot,
+      area: area,
+      deliveryFee: deliveryFee,
+      subtotal: subtotal,
+      total: total,
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim(),
+      customerNotes: customerNotes.trim()
     };
   }
 

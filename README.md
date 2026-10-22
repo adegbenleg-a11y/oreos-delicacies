@@ -48,7 +48,7 @@ A complete, mobile-first, professional web application with a real-time ordering
 
 - **Frontend:** HTML5, Modern Modular JavaScript (ES Modules), Tailwind CSS (responsive design system with custom brand tokens).
 - **Typography:** Playfair Display (Luxury Serif Headings), Poppins (Accents), Inter (Clean Body Text).
-- **Icons:** Lucide Icons.
+- **Icons:** Phosphor Icons (Duotone, Bold, Regular, Fill).
 - **Data Layer (`js/store.js`):** Reactive architecture supporting instant local persistence (`localStorage`) out of the box, with optional real-time cloud sync to **Supabase**.
 - **Real-time Timezone:** Evaluated using `Intl.DateTimeFormat` with Nigerian timezone (`Africa/Lagos`) to show accurate store open/closed states.
 

@@ -83,6 +83,8 @@ function initCarousel() {
 // ========================================
 // 3. FEATURED PRODUCTS GRID
 // ========================================
+// 3. FEATURED PRODUCTS GRID (with + / − Stepper & Add to Cart)
+// ========================================
 function renderProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
@@ -98,47 +100,262 @@ function renderProducts() {
     return (a.order || 99) - (b.order || 99);
   });
 
+  const cartItems = cart.getItems();
+
   grid.innerHTML = sorted.map(item => {
-    const firstVariant = item.variants?.[0];
-    const price = firstVariant ? formatPrice(firstVariant.price) : '';
+    const hasMultipleVariants = item.variants && item.variants.length > 1;
+    const firstVariant = item.variants?.[0] || { name: 'Standard', price: 0 };
+    const price = formatPrice(firstVariant.price);
     const isSoldOut = item.is_sold_out;
+
+    // Calculate how many of this item are currently in the cart
+    const inCartCount = cartItems
+      .filter(ci => ci.itemId === item.id)
+      .reduce((sum, ci) => sum + (ci.quantity || 1), 0);
     
     const badge = item.is_signature
-      ? '<span class="product-card-badge">🔥 Signature</span>'
+      ? '<span class="product-card-badge"><i class="ph-fill ph-fire" style="color:#FFA07A; margin-right:3px;"></i> Signature</span>'
       : item.is_featured
-        ? '<span class="product-card-badge">⭐ Popular</span>'
+        ? '<span class="product-card-badge"><i class="ph-fill ph-star" style="color:#F5A623; margin-right:3px;"></i> Popular</span>'
         : isSoldOut
           ? '<span class="product-card-badge" style="background:#888;">Sold Out</span>'
           : '';
 
     const stars = `
       <div class="product-card-stars">
-        ${Array(5).fill(0).map(() => `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`).join('')}
+        ${Array(5).fill(0).map(() => `<i class="ph-fill ph-star" style="color:#F5A623; font-size:12px;"></i>`).join('')}
       </div>
     `;
 
-    const whatsappLink = `https://wa.me/2347033396558?text=${encodeURIComponent(`Hello Oreos Delicacies! I want to order ${item.name}${firstVariant ? ` (${firstVariant.name})` : ''}.`)}`;
+    // Variant selector HTML
+    let variantHtml = '';
+    if (hasMultipleVariants) {
+      variantHtml = `
+        <div class="product-variant-wrapper">
+          <label for="variant-select-${item.id}" class="sr-only">Select size</label>
+          <select class="product-variant-select" id="variant-select-${item.id}" data-item-id="${item.id}">
+            ${item.variants.map((v, i) => `
+              <option value="${v.name}" data-price="${v.price}" ${i === 0 ? 'selected' : ''}>
+                ${v.name} - ${formatPrice(v.price)}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+      `;
+    } else {
+      variantHtml = `
+        <div class="product-variant-wrapper">
+          <span class="product-single-variant">${firstVariant.name}</span>
+        </div>
+      `;
+    }
 
     return `
-      <div class="product-card" id="product-${item.id}">
+      <div class="product-card" id="product-${item.id}" data-item-id="${item.id}">
         <div class="product-card-image">
-          <img src="${item.image}" alt="${item.name}" loading="lazy">
+          <img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.src='assets/images/real-cake-size10.jpg'">
           ${badge}
-          <div class="product-card-actions">
-            <a href="${whatsappLink}" target="_blank" rel="noopener" class="product-card-action-btn" title="Order on WhatsApp">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-            </a>
-          </div>
         </div>
         <div class="product-card-info">
-          <h3>${item.name}</h3>
-          <div class="product-category">${getCategoryName(item.category_id)}</div>
-          <div class="product-price">${price}</div>
-          ${stars}
+          <div>
+            <h3>${item.name}</h3>
+            <div class="product-category">${getCategoryName(item.category_id)}</div>
+            ${stars}
+            ${variantHtml}
+          </div>
+          <div class="product-card-bottom">
+            <div class="product-price-row">
+              <div class="product-price-box">
+                <span class="product-price-label">Price</span>
+                <span class="product-price" id="price-display-${item.id}">${price}</span>
+              </div>
+              <div class="card-in-cart-indicator">
+                <span class="in-cart-pill ${inCartCount > 0 ? '' : 'hidden'}" id="in-cart-pill-${item.id}">
+                  <i class="ph-bold ph-check" style="font-size:0.75rem; margin-right:2px;"></i> <span id="in-cart-qty-${item.id}">${inCartCount}</span> in Cart
+                </span>
+              </div>
+            </div>
+
+            <div class="product-card-actions-row">
+              <div class="card-stepper" title="Choose quantity to add or reduce">
+                <button 
+                  type="button" 
+                  class="card-step-btn card-minus-btn" 
+                  data-item-id="${item.id}" 
+                  aria-label="Decrease quantity" 
+                  title="Reduce quantity"
+                  ${isSoldOut ? 'disabled' : ''}
+                ><i class="ph-bold ph-minus"></i></button>
+                <span class="card-qty-display" id="card-qty-${item.id}" data-item-id="${item.id}">1</span>
+                <button 
+                  type="button" 
+                  class="card-step-btn card-plus-btn" 
+                  data-item-id="${item.id}" 
+                  aria-label="Increase quantity" 
+                  title="Increase quantity"
+                  ${isSoldOut ? 'disabled' : ''}
+                ><i class="ph-bold ph-plus"></i></button>
+              </div>
+
+              <button 
+                type="button" 
+                class="product-add-btn ${isSoldOut ? 'disabled' : ''}" 
+                data-item-id="${item.id}"
+                ${isSoldOut ? 'disabled' : ''}
+                title="${isSoldOut ? 'Sold Out' : `Add ${item.name} to Cart`}"
+              >
+                <i class="ph-bold ph-shopping-cart" style="font-size:0.95rem; margin-right:3px;"></i>
+                <span class="btn-text">${isSoldOut ? 'Sold Out' : 'Add to Cart'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     `;
   }).join('');
+
+  // Attach Variant Selector change listeners (updates dynamic price display)
+  grid.querySelectorAll('.product-variant-select').forEach(select => {
+    select.addEventListener('change', (e) => {
+      const itemId = e.target.getAttribute('data-item-id');
+      const selectedOption = e.target.options[e.target.selectedIndex];
+      const newPrice = selectedOption ? Number(selectedOption.getAttribute('data-price')) : 0;
+      const priceDisplay = document.getElementById(`price-display-${itemId}`);
+      if (priceDisplay && !isNaN(newPrice)) {
+        priceDisplay.textContent = formatPrice(newPrice);
+      }
+    });
+  });
+
+  // Attach Stepper Minus (-) Button Click Listeners (reduces pending qty or in-cart qty)
+  grid.querySelectorAll('.card-minus-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const itemId = e.currentTarget.getAttribute('data-item-id');
+      const item = store.getMenuItems().find(i => i.id === itemId);
+      if (!item || item.is_sold_out) return;
+
+      const qtyDisplay = document.getElementById(`card-qty-${itemId}`);
+      let currentQty = parseInt(qtyDisplay?.textContent || '1', 10);
+
+      if (currentQty > 1) {
+        currentQty -= 1;
+        if (qtyDisplay) qtyDisplay.textContent = currentQty.toString();
+      } else {
+        // If pending qty is at 1, check if item exists in cart to allow direct reduction
+        const variantSelect = document.getElementById(`variant-select-${itemId}`);
+        let variantName = '';
+        if (variantSelect) {
+          variantName = variantSelect.value;
+        } else if (item.variants && item.variants.length > 0) {
+          variantName = item.variants[0].name;
+        } else {
+          variantName = 'Standard';
+        }
+
+        const cartItemId = `${item.id}__${variantName}`;
+        const existingInCart = cart.getItems().find(ci => ci.cartItemId === cartItemId);
+        
+        if (existingInCart) {
+          cart.updateQuantity(cartItemId, -1);
+          showToast(`🛒 Reduced 1× ${item.name} (${variantName}) in your cart.`);
+          syncAllCardsInCartBadges();
+        } else {
+          showToast('Quantity is at minimum (1).');
+        }
+      }
+    });
+  });
+
+  // Attach Stepper Plus (+) Button Click Listeners (increases quantity)
+  grid.querySelectorAll('.card-plus-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const itemId = e.currentTarget.getAttribute('data-item-id');
+      const item = store.getMenuItems().find(i => i.id === itemId);
+      if (!item || item.is_sold_out) return;
+
+      const qtyDisplay = document.getElementById(`card-qty-${itemId}`);
+      let currentQty = parseInt(qtyDisplay?.textContent || '1', 10);
+
+      if (currentQty < 99) {
+        currentQty += 1;
+        if (qtyDisplay) qtyDisplay.textContent = currentQty.toString();
+      }
+    });
+  });
+
+  // Attach Add to Cart button click listeners
+  grid.querySelectorAll('.product-add-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const button = e.currentTarget;
+      const itemId = button.getAttribute('data-item-id');
+      const item = store.getMenuItems().find(i => i.id === itemId);
+      if (!item || item.is_sold_out) return;
+
+      const qtyDisplay = document.getElementById(`card-qty-${itemId}`);
+      const quantityToAdd = Math.max(1, parseInt(qtyDisplay?.textContent || '1', 10));
+
+      const variantSelect = document.getElementById(`variant-select-${itemId}`);
+      let variantName = '';
+      if (variantSelect) {
+        variantName = variantSelect.value;
+      } else if (item.variants && item.variants.length > 0) {
+        variantName = item.variants[0].name;
+      } else {
+        variantName = 'Standard';
+      }
+
+      // Add to cart with chosen quantity
+      cart.addItem(item, variantName, quantityToAdd);
+
+      // Button micro-animation feedback
+      const btnText = button.querySelector('.btn-text');
+      const originalText = btnText ? btnText.textContent : 'Add to Cart';
+      button.classList.add('added-success');
+      if (btnText) btnText.textContent = `✓ Added ${quantityToAdd}!`;
+      
+      setTimeout(() => {
+        button.classList.remove('added-success');
+        if (btnText) btnText.textContent = originalText;
+      }, 1200);
+
+      // Reset card pending qty back to 1
+      if (qtyDisplay) qtyDisplay.textContent = '1';
+
+      syncAllCardsInCartBadges();
+
+      showToast(`🛒 Added ${quantityToAdd}× ${item.name} (${variantName}) to your cart!`);
+    });
+  });
+}
+
+/**
+ * Synchronize live in-cart quantity badges on all product cards
+ */
+function syncAllCardsInCartBadges() {
+  const items = cart.getItems();
+  const allCards = document.querySelectorAll('.product-card');
+
+  allCards.forEach(card => {
+    const itemId = card.getAttribute('data-item-id');
+    if (!itemId) return;
+
+    const inCartPill = document.getElementById(`in-cart-pill-${itemId}`);
+    const inCartQty = document.getElementById(`in-cart-qty-${itemId}`);
+
+    // Sum all variants for this item
+    const totalQty = items
+      .filter(ci => ci.itemId === itemId)
+      .reduce((sum, ci) => sum + (ci.quantity || 1), 0);
+
+    if (inCartPill && inCartQty) {
+      if (totalQty > 0) {
+        inCartQty.textContent = totalQty.toString();
+        inCartPill.classList.remove('hidden');
+      } else {
+        inCartPill.classList.add('hidden');
+      }
+    }
+  });
 }
 
 function getCategoryName(categoryId) {
@@ -149,29 +366,6 @@ function getCategoryName(categoryId) {
 
 function formatPrice(amount) {
   return '₦' + new Intl.NumberFormat('en-NG').format(amount);
-}
-
-// ========================================
-// 4. DELIVERY TABLE
-// ========================================
-function renderDeliveryTable() {
-  const tbody = document.getElementById('delivery-table-body');
-  if (!tbody) return;
-  
-  const areas = store.getDeliveryAreas();
-  
-  tbody.innerHTML = areas.map(area => {
-    const feeClass = area.fee === 0 ? 'free-badge' : '';
-    const feeText = area.fee === 0 ? 'FREE' : formatPrice(area.fee);
-    
-    return `
-      <tr>
-        <td><strong>${area.name}</strong></td>
-        <td><span class="fee-badge ${feeClass}">${feeText}</span></td>
-        <td>${area.time_estimate || '—'}</td>
-      </tr>
-    `;
-  }).join('');
 }
 
 // ========================================
@@ -209,53 +403,110 @@ function renderGallery() {
 }
 
 // ========================================
-// 6. TESTIMONIALS / REVIEWS
+// 6. TESTIMONIALS / CUSTOMER REVIEWS MARQUEE
 // ========================================
 function renderReviews() {
   const grid = document.getElementById('reviews-grid');
   if (!grid) return;
   
   const REVIEWS_KEY = 'oreos_reviews_v6';
-  const reviews = store.get(REVIEWS_KEY, []);
+  const savedReviews = store.get(REVIEWS_KEY, []);
   
-  if (reviews.length === 0) {
-    // Fallback static reviews
-    grid.innerHTML = getStaticReviews();
-    return;
-  }
+  const baseReviews = (savedReviews && savedReviews.length > 0) ? savedReviews : getStaticReviewsList();
+
+  // Duplicate for seamless infinite loop in marquee
+  const marqueeReviews = [...baseReviews, ...baseReviews];
   
-  grid.innerHTML = reviews.map(review => `
-    <div class="testimonial-card">
-      <span class="quote-icon">"</span>
-      <div class="stars">
-        ${Array(review.rating || 5).fill(0).map(() => `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`).join('')}
+  grid.innerHTML = marqueeReviews.map(review => {
+    const name = review.customer_name || review.name || review.author || 'Happy Customer';
+    const text = review.comment || review.text || '';
+    const location = review.location || 'Abeokuta';
+    const rating = review.rating || 5;
+    const initial = name.trim().charAt(0).toUpperCase() || 'O';
+
+    const starsHtml = Array(rating).fill(0)
+      .map(() => '<i class="ph-fill ph-star" style="color:#F5A623; font-size:13px;"></i>')
+      .join('');
+
+    return `
+      <div class="testimonial-card">
+        <span class="quote-icon"><i class="ph-duotone ph-quotes"></i></span>
+        <div class="stars">${starsHtml}</div>
+        <p>"${text}"</p>
+        <div class="author">
+          <div class="author-avatar">${initial}</div>
+          <div class="author-info">
+            <strong>${name}</strong>
+            <span>${location}</span>
+          </div>
+        </div>
       </div>
-      <p>${review.text || review.comment || ''}</p>
-      <div class="author">${review.name || review.author || 'Happy Customer'} <span>— ${review.location || 'Abeokuta'}</span></div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+
+  // Mobile Touch Pause & Resume
+  const wrapper = document.getElementById('testimonials-marquee-wrapper');
+  if (wrapper) {
+    wrapper.addEventListener('touchstart', () => {
+      grid.style.animationPlayState = 'paused';
+    }, { passive: true });
+    wrapper.addEventListener('touchend', () => {
+      grid.style.animationPlayState = 'running';
+    }, { passive: true });
+  }
 }
 
-function getStaticReviews() {
-  const reviews = [
-    { name: 'Temitope A.', text: 'The eggrolls are incredible! Best I\'ve ever tasted in Abeokuta. Crispy on the outside, perfect seasoning inside. My FUNAAB friends are addicted!', rating: 5, location: 'FUNAAB' },
-    { name: 'Bola Ogunmola', text: 'Ordered a 3-tier birthday cake for my daughter and it was absolutely stunning! The taste was even better than it looked. Oreofe is truly talented.', rating: 5, location: 'Isolu' },
-    { name: 'Adewale K.', text: 'Fast delivery to Camp, fresh donuts that melted in my mouth. The milky donut pack was perfect for our hostel movie night. Will definitely order again!', rating: 5, location: 'Camp, Abeokuta' },
-    { name: 'Chioma Eze', text: 'The treat box I ordered for Valentine\'s was breathtaking. Beautiful packaging, delicious contents. My girlfriend was so impressed. Thank you Oreos!', rating: 5, location: 'Harmony' },
-    { name: 'Segun Bakare', text: 'I\'ve tried many bakeries in Abeokuta but Oreos Delicacies stands out. Their attention to hygiene and quality is top notch. The plantain chips are addictive!', rating: 5, location: 'Obantoko' },
-    { name: 'Folake M.', text: 'Oreofe made the most beautiful bento cake for my bridal shower. All my guests kept asking where I got it. Affordable prices too!', rating: 5, location: 'Abeokuta' },
+function getStaticReviewsList() {
+  return [
+    {
+      name: "Ayomide S.",
+      location: "Camp, FUNAAB",
+      rating: 5,
+      text: "Oreofe's eggrolls (₦700), meat pies (₦1,200), and fresh fruit parfait (₦4,000) are my absolute favorites! The food is so clean and delicious."
+    },
+    {
+      name: "Mrs. Folashade Adeleke",
+      location: "Isolu, Abeokuta",
+      rating: 5,
+      text: "The Size 5 Two Layer Cake (₦18,000) with ribbon bows was so neat and elegant! And the ₦14,000 Treat Box made my sister's birthday unforgettable."
+    },
+    {
+      name: "Dera M.",
+      location: "Abeokuta",
+      rating: 5,
+      text: "The Celebration Snacks Mega Box (₦25,000) was the star of our anniversary party! Fresh meat pies, buns, puff-puff and chicken. 10/10 service!"
+    },
+    {
+      name: "Dr. Babatunde K.",
+      location: "FUNAAB Staff Quarters",
+      rating: 5,
+      text: "The ₦3,500 Milky Donuts and ₦3,000 Banana Bread are our department favorites every Friday. Fresh, soft, and delicious!"
+    },
+    {
+      name: "Temitope A.",
+      location: "Camp, FUNAAB",
+      rating: 5,
+      text: "The eggrolls are incredible! Best I've ever tasted in Abeokuta. Crispy on the outside, perfect seasoning inside. My hostel mates are addicted!"
+    },
+    {
+      name: "Bola Ogunmola",
+      location: "Isolu, Abeokuta",
+      rating: 5,
+      text: "Ordered a 3-tier birthday cake and it was absolutely stunning! The taste was even better than it looked. Oreofe is truly gifted."
+    },
+    {
+      name: "Chioma Eze",
+      location: "Harmony, FUNAAB",
+      rating: 5,
+      text: "The treat box I ordered for Valentine's was breathtaking. Beautiful packaging, delicious pastries. My girlfriend was so impressed. Thank you Oreos!"
+    },
+    {
+      name: "Adewale K.",
+      location: "Camp, Abeokuta",
+      rating: 5,
+      text: "Fast delivery to Camp, fresh donuts that melted in my mouth. The milky donut pack was perfect for our hostel movie night. Will definitely order again!"
+    }
   ];
-
-  return reviews.map(review => `
-    <div class="testimonial-card">
-      <span class="quote-icon">"</span>
-      <div class="stars">
-        ${Array(review.rating).fill(0).map(() => `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`).join('')}
-      </div>
-      <p>${review.text}</p>
-      <div class="author">${review.name} <span>— ${review.location}</span></div>
-    </div>
-  `).join('');
 }
 
 // ========================================
@@ -319,12 +570,14 @@ function initMobileMenu() {
   if (btn) {
     btn.addEventListener('click', () => {
       menu.classList.add('active');
+      document.body.style.overflow = 'hidden';
     });
   }
 
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
       menu.classList.remove('active');
+      document.body.style.overflow = '';
     });
   }
   
@@ -332,16 +585,331 @@ function initMobileMenu() {
   menu.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', () => {
       menu.classList.remove('active');
+      document.body.style.overflow = '';
     });
   });
 }
 
-function updateCartBadge() {
-  const badge = document.getElementById('cart-count');
-  if (!badge) return;
+// ========================================
+// 10. GOODIES BAG / BULK ORDER DRAWER CONTROLLER
+// ========================================
+function initCartDrawer() {
+  const drawer = document.getElementById('cart-drawer');
+  const backdrop = document.getElementById('cart-backdrop');
+  const closeBtn = document.getElementById('close-cart-btn');
+  const emptyBrowseBtn = document.getElementById('empty-browse-btn');
+  const areaSelect = document.getElementById('cart-area-select');
+  const checkoutBtn = document.getElementById('cart-checkout-btn');
+  const clearBtn = document.getElementById('cart-clear-btn');
+  const itemsList = document.getElementById('cart-items-list');
+  const newOrderBtn = document.getElementById('confirm-new-order-btn');
+
+  function openCartDrawer() {
+    if (!drawer || !backdrop) return;
+    drawer.classList.add('active');
+    backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    renderCartDrawerUI();
+  }
+
+  function closeCartDrawer() {
+    if (!drawer || !backdrop) return;
+    drawer.classList.remove('active');
+    backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Expose to global window
+  window.__openCartDrawer = openCartDrawer;
+  window.__closeCartDrawer = closeCartDrawer;
+
+  // Triggers
+  document.getElementById('cart-btn')?.addEventListener('click', openCartDrawer);
+  document.getElementById('mobile-cart-trigger')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('mobile-menu')?.classList.remove('active');
+    openCartDrawer();
+  });
+  document.getElementById('mobile-bag-trigger')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('mobile-menu')?.classList.remove('active');
+    openCartDrawer();
+  });
+  document.getElementById('hero-cart-trigger')?.addEventListener('click', openCartDrawer);
+  document.getElementById('hero-bag-trigger')?.addEventListener('click', openCartDrawer);
+  document.getElementById('footer-cart-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openCartDrawer();
+  });
+  document.getElementById('floating-cart-trigger')?.addEventListener('click', openCartDrawer);
+
+  closeBtn?.addEventListener('click', closeCartDrawer);
+  backdrop?.addEventListener('click', closeCartDrawer);
+  emptyBrowseBtn?.addEventListener('click', () => {
+    closeCartDrawer();
+    document.getElementById('featured')?.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // Populate Delivery Areas dropdown once
+  populateCartAreas();
+
+  // On Area Change
+  areaSelect?.addEventListener('change', (e) => {
+    cart.setSelectedArea(e.target.value);
+    renderCartDrawerUI();
+  });
+
+  // Clear Cart
+  clearBtn?.addEventListener('click', () => {
+    cart.clearCart();
+    showToast('Your shopping cart has been cleared.');
+  });
+
+  // Quantity Stepper and Item Deletion via Event Delegation
+  itemsList?.addEventListener('click', (e) => {
+    const stepBtn = e.target.closest('.cart-step-btn');
+    if (stepBtn) {
+      const cartId = stepBtn.getAttribute('data-cart-id');
+      const delta = parseInt(stepBtn.getAttribute('data-delta'), 10) || 0;
+      cart.updateQuantity(cartId, delta);
+      return;
+    }
+
+    const deleteBtn = e.target.closest('.cart-item-delete');
+    if (deleteBtn) {
+      const cartId = deleteBtn.getAttribute('data-cart-id');
+      cart.removeItem(cartId);
+      showToast('Item removed from cart.');
+      return;
+    }
+  });
+
+  // Checkout Button (Validates & Dispatches to WhatsApp)
+  checkoutBtn?.addEventListener('click', () => {
+    const nameInput = document.getElementById('cart-customer-name');
+    const phoneInput = document.getElementById('cart-customer-phone');
+    const notesInput = document.getElementById('cart-customer-notes');
+
+    const name = nameInput?.value || '';
+    const phone = phoneInput?.value || '';
+    const notes = notesInput?.value || '';
+
+    if (!name.trim()) {
+      showToast('⚠️ Please enter your full name for the order.');
+      nameInput?.focus();
+      return;
+    }
+
+    if (!phone.trim()) {
+      showToast('⚠️ Please enter your phone / WhatsApp number.');
+      phoneInput?.focus();
+      return;
+    }
+
+    try {
+      const result = cart.processWhatsAppOrder(name, phone, notes);
+
+      // Switch to Confirmation Screen
+      const activeView = document.getElementById('cart-active-view');
+      const confirmationView = document.getElementById('cart-confirmation-view');
+      const cartFooter = document.getElementById('cart-footer');
+
+      if (activeView) activeView.classList.add('hidden');
+      if (cartFooter) cartFooter.classList.add('hidden');
+      if (confirmationView) confirmationView.classList.remove('hidden');
+
+      // Fill in Confirmation details
+      const confirmOrderId = document.getElementById('confirm-order-id');
+      const confirmName = document.getElementById('confirm-customer-name');
+      const confirmPhone = document.getElementById('confirm-customer-phone');
+      const confirmArea = document.getElementById('confirm-area-name');
+      const confirmFee = document.getElementById('confirm-delivery-fee');
+      const confirmNotes = document.getElementById('confirm-address-notes');
+      const confirmTotal = document.getElementById('confirm-total-amount');
+      const confirmItemsList = document.getElementById('confirm-items-list');
+      const reopenBtn = document.getElementById('confirm-reopen-whatsapp-btn');
+
+      if (confirmOrderId) confirmOrderId.textContent = `Order #${result.order.id}`;
+      if (confirmName) confirmName.textContent = result.customerName;
+      if (confirmPhone) confirmPhone.textContent = result.customerPhone;
+      if (confirmArea) confirmArea.textContent = result.area.name;
+      if (confirmFee) confirmFee.textContent = result.deliveryFee === 0 ? 'FREE (Store Pickup)' : formatPrice(result.deliveryFee);
+      if (confirmNotes) confirmNotes.textContent = result.customerNotes || 'None specified';
+      if (confirmTotal) confirmTotal.textContent = formatPrice(result.total);
+
+      if (confirmItemsList) {
+        confirmItemsList.innerHTML = result.items.map(item => `
+          <div class="confirm-item-row">
+            <span>${item.quantity}× ${item.name} (${item.variant})</span>
+            <strong>${formatPrice(item.price * item.quantity)}</strong>
+          </div>
+        `).join('');
+      }
+
+      if (reopenBtn) {
+        reopenBtn.href = result.whatsappUrl;
+      }
+
+      // Open WhatsApp in new tab
+      window.open(result.whatsappUrl, '_blank');
+      showToast('🎉 Bulk order placed! Opening WhatsApp with your order...');
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    }
+  });
+
+  // Start New Order Button on Confirmation Screen
+  newOrderBtn?.addEventListener('click', () => {
+    const activeView = document.getElementById('cart-active-view');
+    const confirmationView = document.getElementById('cart-confirmation-view');
+    if (confirmationView) confirmationView.classList.add('hidden');
+    if (activeView) activeView.classList.remove('hidden');
+    
+    // Clear inputs
+    const nameInput = document.getElementById('cart-customer-name');
+    const phoneInput = document.getElementById('cart-customer-phone');
+    const notesInput = document.getElementById('cart-customer-notes');
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (notesInput) notesInput.value = '';
+
+    renderCartDrawerUI();
+    closeCartDrawer();
+  });
+}
+
+function populateCartAreas() {
+  const select = document.getElementById('cart-area-select');
+  if (!select) return;
+
+  const areas = store.getDeliveryAreas();
+  select.innerHTML = areas.map(area => {
+    const feeText = area.fee === 0 ? 'FREE Store Pickup' : `₦${new Intl.NumberFormat('en-NG').format(area.fee)}`;
+    return `
+      <option value="${area.id}">
+        ${area.name} — ${feeText} (${area.time_estimate || '20-40 mins'})
+      </option>
+    `;
+  }).join('');
+
+  select.value = cart.selectedAreaId || areas[0]?.id;
+}
+
+function renderCartDrawerUI() {
+  const items = cart.getItems();
   const count = cart.getItemCount();
-  badge.textContent = count;
-  badge.style.display = count > 0 ? 'flex' : 'none';
+  const subtotal = cart.getSubtotal();
+  const deliveryFee = cart.getDeliveryFee();
+  const grandTotal = cart.getTotal();
+  const selectedArea = cart.getSelectedArea();
+
+  // Badges update
+  const badges = [
+    document.getElementById('cart-count'),
+    document.getElementById('cart-count-inline'),
+    document.getElementById('mobile-cart-count'),
+    document.getElementById('hero-cart-count'),
+    document.getElementById('floating-item-count')
+  ];
+
+  badges.forEach(badge => {
+    if (!badge) return;
+    badge.textContent = count.toString();
+    if (badge.id === 'floating-item-count') {
+      badge.textContent = `${count} ${count === 1 ? 'item' : 'items'}`;
+    }
+    if (badge.id === 'cart-count') {
+      badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+  });
+
+  // Floating Cart Bar at bottom
+  const floatingBar = document.getElementById('floating-cart-bar');
+  const floatingTotal = document.getElementById('floating-total-amount');
+  if (floatingBar) {
+    if (count > 0) {
+      floatingBar.classList.add('active');
+      document.body.classList.add('has-floating-cart');
+      if (floatingTotal) floatingTotal.textContent = formatPrice(subtotal);
+    } else {
+      floatingBar.classList.remove('active');
+      document.body.classList.remove('has-floating-cart');
+    }
+  }
+
+  // Empty state vs Loaded state
+  const emptyState = document.getElementById('cart-empty-state');
+  const loadedContent = document.getElementById('cart-content-loaded');
+  const footer = document.getElementById('cart-footer');
+
+  if (count === 0) {
+    emptyState?.classList.remove('hidden');
+    loadedContent?.classList.add('hidden');
+    footer?.classList.add('hidden');
+  } else {
+    emptyState?.classList.add('hidden');
+    loadedContent?.classList.remove('hidden');
+    footer?.classList.remove('hidden');
+
+    // Render items list
+    const itemsList = document.getElementById('cart-items-list');
+    if (itemsList) {
+      itemsList.innerHTML = items.map(item => `
+        <div class="cart-item-card" data-cart-id="${item.cartItemId}">
+          <img src="${item.image || 'assets/images/real-cake-size10.jpg'}" alt="${item.name}" class="cart-item-thumb" onerror="this.src='assets/images/real-cake-size10.jpg'">
+          <div class="cart-item-info">
+            <h4 class="cart-item-name">${item.name}</h4>
+            <div class="cart-item-variant">${item.variantName}</div>
+            <div class="cart-item-pricing">${formatPrice(item.unitPrice * item.quantity)} <small>(${formatPrice(item.unitPrice)} ea)</small></div>
+          </div>
+          <div class="cart-item-stepper">
+            <button type="button" class="stepper-btn cart-step-btn" data-cart-id="${item.cartItemId}" data-delta="-1" aria-label="Decrease quantity">
+              <i class="ph-bold ph-minus"></i>
+            </button>
+            <span class="stepper-qty">${item.quantity}</span>
+            <button type="button" class="stepper-btn cart-step-btn" data-cart-id="${item.cartItemId}" data-delta="1" aria-label="Increase quantity">
+              <i class="ph-bold ph-plus"></i>
+            </button>
+          </div>
+          <button type="button" class="cart-item-delete" data-cart-id="${item.cartItemId}" title="Remove ${item.name}">
+            <i class="ph-bold ph-trash" style="font-size:1.1rem;"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Subtotal strip
+    const subtotalDisplay = document.getElementById('cart-subtotal-display');
+    if (subtotalDisplay) subtotalDisplay.textContent = formatPrice(subtotal);
+
+    // Delivery Area banner
+    const bannerFee = document.getElementById('banner-area-fee');
+    const bannerTime = document.getElementById('banner-area-time');
+    if (bannerFee) {
+      bannerFee.textContent = deliveryFee === 0 ? 'Fee: FREE Store Pickup' : `Fee: ${formatPrice(deliveryFee)}`;
+    }
+    if (bannerTime) {
+      bannerTime.textContent = `Estimated arrival: ${selectedArea.time_estimate || '20 - 40 mins'}`;
+    }
+
+    // Summary lines
+    const summarySubtotal = document.getElementById('summary-subtotal');
+    const summaryFee = document.getElementById('summary-delivery-fee');
+    const summaryGrandTotal = document.getElementById('summary-grand-total');
+    const summaryCount = document.getElementById('summary-item-count');
+    const checkoutLabel = document.getElementById('checkout-btn-label');
+
+    if (summarySubtotal) summarySubtotal.textContent = formatPrice(subtotal);
+    if (summaryFee) summaryFee.textContent = deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee);
+    if (summaryGrandTotal) summaryGrandTotal.textContent = formatPrice(grandTotal);
+    if (summaryCount) summaryCount.textContent = `(${count} ${count === 1 ? 'treat' : 'treats'})`;
+    if (checkoutLabel) {
+      checkoutLabel.textContent = `Send Bulk Order on WhatsApp (${count} items • ${formatPrice(grandTotal)})`;
+    }
+  }
+
+  // Always sync in-cart badges on product cards
+  syncAllCardsInCartBadges();
 }
 
 // ========================================
@@ -515,7 +1083,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroSlideshow();
   initCarousel();
   renderProducts();
-  renderDeliveryTable();
   renderGallery();
   renderReviews();
   initEnquiryForm();
@@ -523,8 +1090,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollEffects();
   initLightbox();
   initFeatureSteps();
-  updateCartBadge();
-  cart.subscribe(() => updateCartBadge());
+  initCartDrawer();
+  renderCartDrawerUI();
+  cart.subscribe(() => renderCartDrawerUI());
   
   // Initialize Lucide icons
   if (typeof lucide !== 'undefined') {
